@@ -2,7 +2,6 @@
 This pipeline performs differential binding analysis on ChIP-seq/ChIP-like seq (e.g. ATACseq, Cut&amp;Run seq) data across multiple histone marks, identifying differentially regulated promoters and visualizing results using genome browser tracks.
 
 ## Scripts
-
 ### 1. `diff_bind_3.R` - Differential Binding Analysis
 Performs LIMMA-based differential analysis on promoter regions for multiple histone marks.
 
@@ -11,17 +10,21 @@ Performs LIMMA-based differential analysis on promoter regions for multiple hist
 - `annotate_all_contrasts()` - Annotates significant results with gene symbols
 
 **Analysis Steps:**
-1. Loads promoter count data (3kb regions)
-2. Filters low-expression promoters (mean > 2)
+1. Loads promoter (+/-3kb regions of TSS) signal value data (output from rule create_normalized_bigwig of snakefile_CutandRunseq: normalized for sequencing depth, GC content and input)
+2. Filters out low-expression promoters (mean > 2)
 3. Log10 transformation
 4. LIMMA differential analysis (treatment vs Control)
 5. Exports UP/DOWN regulated genes for each contrast
 
 **Histone Marks Analyzed:**
-- A1, A2, P, R1, R2
+- A1 (active histone mark 1)
+- A2 (active histone mark 2)
+- P (poised histone mark)
+- R1 (repressive histone mark 1)
+- R2 (repressive histone mark 2)
 
 **Treatment Groups:**
-- GAL1, G3BP, POSTN (all compared to Ctrl)
+- GAL1, G3BP, POSTN (all compared to Ctrl respectively)
 
 ### 2. `diff_bind_4.R` - Gene Visualization
 Identifies top differentially regulated genes and creates genome browser visualizations.
@@ -34,15 +37,15 @@ Identifies top differentially regulated genes and creates genome browser visuali
 - Genome tracks for control and treatment samples
 - Gene models with exon structure
 - BigWig signal overlays (control in red, treatment in purple)
-- ±3kb promoter context
+- 3kb extended at start/end of the gene 
 
 ## Input Files
 
 ### Required Data
-- `hg38_promoters_chr1-22_X_3kb.tsv` - Promoter count matrix
-- `sample_name_replacement.csv` - Sample name mapping
-- `hg38_promoters_chr1-22_X_3kb.bed` - Promoter coordinates
-- `geneModels.csv` - Gene annotation
+- `hg38_promoters_chr1-22_X_3kb.tsv` file in `./data/` - Promoter signal value matrix
+- `sample_name_replacement.csv` file in `./data/` - Sample name mapping csv file with colnames (x and replacement: original sample name of bw files and abbr. names based on sample naming convention)
+- `hg38_promoters_chr1-22_X_3kb.bed` file in `./ref/` - Promoter coordinates downloaded from TxDb.Hsapiens.UCSC.hg38.knownGene
+- `geneModels.csv` file in `./ref/` - Gene annotation constructed from ENSEMBL gtf file
 - BigWig files in `./data/bw/`
 
 ### Sample Naming Convention
@@ -72,6 +75,7 @@ Example: Ctrl_A1_r1, GAL1_A2_r2, G3BP_P_r3
         │   ├── hist_raw_values.pdf
         │   ├── hist_log10_values.pdf
         │   ├── top_genes_summary_A1.csv
+        │   ├── top_genes_summary_A1.csv
         │   └── Gviz_*.pdf
         └── [A2, P, R1, R2]/
 ```
@@ -81,12 +85,12 @@ Example: Ctrl_A1_r1, GAL1_A2_r2, G3BP_P_r3
 ### Differential Analysis
 - **Low expression filter:** mean count > 2
 - **Normalization:** log10(x + 1)
-- **Significance cutoff:** P-value < 0.05
-- **Log fold-change cutoff:** |logFC| > 0
+- **Significance cutoff:** P-value < 0.05 (based on your needs)
+- **Log fold-change cutoff:** |logFC| > 0 (based on your needs)
 
 ### Visualization
 - **Promoter window:** ±3000 bp from gene boundaries
-- **Y-axis:** Auto-scaled to maximum signal
+- **Y-axis:** Auto-scaled to maximum signal (all of samples in visual comparison of Gviz)
 - **Control color:** Red
 - **Treatment color:** Purple
 
@@ -152,7 +156,6 @@ plot_gene_gviz(
 
 ## Notes
 
-- Script uses custom library path for package installation
 - All contrasts use Control as reference group
 - Gene models exclude exon 1 in visualizations
 - Missing genes in annotation are skipped automatically
